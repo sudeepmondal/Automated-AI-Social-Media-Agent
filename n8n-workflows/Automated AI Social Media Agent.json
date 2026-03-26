@@ -1,0 +1,203 @@
+{
+  "name": "Automated AI Social Media Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/1 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "74a25e1a-a05c-4638-b7dd-5db7b3a78747",
+      "name": "⏰ Daily 10AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a viral social media content creator. Generate a unique viral social media post idea for today. Niche: motivation, technology, mindset. Today: {{ $now.toISO() }}. Respond ONLY in this exact JSON format with no extra text: {\\\"idea\\\": \\\"content idea here\\\", \\\"imagePrompt\\\": \\\"image prompt max 60 words cinematic ultra HD no text\\\", \\\"caption\\\": \\\"Facebook caption with emojis and 8 hashtags\\\"}\"\n    }\n  ],\n  \"temperature\": 0.9,\n  \"max_tokens\": 600\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "ade28730-20d1-43e6-b04e-3ea78874e6cb",
+      "name": "🧠 Generate All Content (LLM)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        144,
+        112
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "executeOnce": false,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\n// Default values\nlet idea = 'Embrace every challenge as a stepping stone to greatness';\nlet imagePrompt = 'person standing on mountain peak golden hour cinematic ultra HD vibrant colors';\nlet caption = '🔥 Every obstacle is a stepping stone!\\n\\n💪 Believe in yourself.\\n🌟 Your future self will thank you!\\n\\n#Motivation #Success #Mindset #Growth #Hustle #Inspire #Believe #Achieve #DailyMotivation #Winning';\n\ntry {\n  // Groq response parse করো\n  const content = response.choices[0].message.content;\n  console.log('Raw LLM response:', content.substring(0, 200));\n  \n  // JSON extract করো\n  const clean = content\n    .replace(/```json\\n?/g, '')\n    .replace(/```\\n?/g, '')\n    .trim();\n  \n  const jsonMatch = clean.match(/\\{[\\s\\S]*\\}/);\n  \n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    idea = parsed.idea || idea;\n    imagePrompt = parsed.imagePrompt || imagePrompt;\n    caption = parsed.caption || caption;\n    console.log('✅ Parsed successfully');\n    console.log('Idea:', idea.substring(0, 60));\n    console.log('Caption preview:', caption.substring(0, 80));\n  }\n} catch(e) {\n  console.log('Parse error, using defaults:', e.message);\n}\n\n// Random image\nconst seed = Math.floor(Math.random() * 999999);\nconst imageUrl = `https://picsum.photos/1080/1080?random=${seed}`;\n\n// Caption clean করো - newlines রাখো\nconst cleanCaption = caption\n  .replace(/\\\\n/g, '\\n')\n  .trim();\n\nreturn [{ \n  json: { \n    idea,\n    imagePrompt,\n    caption: cleanCaption,\n    imageUrl,\n    date: new Date().toISOString(),\n    seed\n  } \n}];"
+      },
+      "id": "bf32bbd0-6e98-404d-a73f-ab05b3a20b21",
+      "name": "⚙️ Parse & Build Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/955652260976092/photos",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAcWv8qliUsBRG5aiMpZBZBq7w5adR72oe8Obds8p4mPClxBJ7YGxNwjK9RQLrlnWoPRl1czoGNIt3kv2YfwLR1RP2YNYdSshkLJs4p23pKcwBKQbSEK4VypgIEZCRVvKcFqDxSo0lCAaDYbZAt8KsV13FhP8sbfZABE6YXS6VGN7TZABGHHjZCArloDFL1D1ZAHCY6ZB9uQS45yLdANpZCfLnOS9MXWlZBNE3KqdCGLFcZD"
+            },
+            {
+              "name": "url",
+              "value": "https://picsum.photos/1080/1080?random=555"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "25f22d44-85ba-4e52-b9ff-4393b1b8865d",
+      "name": "📘 Post to Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        752,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fbResult = $input.first().json;\nconst content = $('⚙️ Parse & Build Content').first().json;\n\nconst success = !!fbResult.post_id || !!fbResult.id;\nconst postId = fbResult.post_id || fbResult.id || 'N/A';\n\nif (success) {\n  console.log('🎉 SUCCESS! Facebook Post ID:', postId);\n  console.log('📅 Date:', content.date);\n  console.log('💡 Idea:', content.idea);\n} else {\n  console.log('❌ FAILED:', JSON.stringify(fbResult.error || fbResult));\n}\n\nreturn [{ json: { success, postId, ...content, fbResponse: fbResult } }];"
+      },
+      "id": "e605c546-b68a-4cbf-86b8-3a96b291745e",
+      "name": "✅ Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        0
+      ]
+    }
+  ],
+  "pinData": {
+    "⏰ Daily 10AM Trigger": [
+      {
+        "json": {
+          "timestamp": "2026-03-25T14:38:11.239-04:00",
+          "Readable date": "March 25th 2026, 2:38:11 pm",
+          "Readable time": "2:38:11 pm",
+          "Day of week": "Wednesday",
+          "Year": "2026",
+          "Month": "March",
+          "Day of month": "25",
+          "Hour": "14",
+          "Minute": "38",
+          "Second": "11",
+          "Timezone": "America/New_York (UTC-04:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "⏰ Daily 10AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "🧠 Generate All Content (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Generate All Content (LLM)": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Parse & Build Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Parse & Build Content": {
+      "main": [
+        [
+          {
+            "node": "📘 Post to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📘 Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "✅ Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6d0d9aae-5042-46f3-baa1-bbb86ea5bf15",
+  "meta": {
+    "instanceId": "594119ed60d47f842c463e5f7c361f9f1042cfed41480eafc55a23cb16823c52"
+  },
+  "id": "0yGDnFjYTnL9NYn0",
+  "tags": []
+}
