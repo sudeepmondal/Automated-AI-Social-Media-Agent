@@ -1,4 +1,4 @@
-# 🤖 AI Social Media Agent
+# 🤖 Automated AI Social Media Agent
 ### Fully Automated Daily Facebook Post Generator using n8n + Free AI APIs
 
 ![Workflow](https://img.shields.io/badge/n8n-Workflow-orange?style=for-the-badge&logo=n8n)
